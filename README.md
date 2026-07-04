@@ -4,6 +4,41 @@ A complete **Node.js Express CRUD API** with a production-grade **CI/CD pipeline
 
 This project demonstrates real-world DevOps practices including testing, containerization, security scanning, and multi-environment deployment (staging & production).
 
+
+
+                 Push Code
+                     │
+                     ▼
+           GitHub Actions Triggered
+                     │
+                     ▼
+              CI Job Starts
+                     │
+     ┌───────────────┼────────────────┐
+     │               │                │
+ Install        Run Unit Tests    GitLeaks Scan
+ Dependencies
+                     │
+                     ▼
+          Docker Job Starts
+                     │
+      Build Docker Image
+                     │
+           Trivy Scan
+                     │
+       Push to Docker Hub
+                     │
+        ┌────────────┴────────────┐
+        │                         │
+ develop branch             main branch
+        │                         │
+Deploy to Staging EC2     Manual Approval
+                                  │
+                                  ▼
+                      Deploy to Production EC2
+
+
+
 ---
 
 ## 🚀 Features

@@ -52,7 +52,7 @@ jobs:
         run:  npm test
 
       - name: Run GitLeaks Scan
-        run:  gitleaks/gitleaks-action@v3
+        uses:  gitleaks/gitleaks-action@v3
 
 
   # Docker Job 

@@ -1,33 +1,43 @@
 
+# Workflow ka naam jo GitHub Actions me show hoga
+name: CI/CD Pipeline
 
-name: Node.js CI
-
-# Controls when the workflow will run
+# Workflow kab trigger hoga
 on:
-  # Triggers the workflow on push or pull request events but only for the "main" branch
+
+# Jab code push hoga
   push:
     branches:
       - develop
       - main
+    
+    paths-ignore:
+      - 'README.md'
+
+   # Jab Pull Request create ya update hogi    
   pull_request:
     branches:
       - develop
       - main
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+    paths-ignore:
+      - 'README.md'
+
+# Yahan se jobs start hoti hain
 jobs:
-  # This workflow contains a single job called "build"
-  build-test:
-    # The type of runner that the job will run on
+
+  # CI Job
+  ci:
+    name:    Test & Build
     runs-on: ubuntu-latest
 
-    # Steps represent a sequence of tasks that will be executed as part of the job
+   
     steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+
       - name: checkout repository
         uses: actions/checkout@v4
 
-      # Runs a single command using the runners shell
+  
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -35,12 +45,40 @@ jobs:
           cache: npm
       
       - name: Install Dependencies
-        run: npm install
+        run:  npm install
 
-      # Runs a set of commands using the runners shell
+
       - name: Run Unit Tests
-        run: npm test
-      
+        run:  npm test
+
+      - name: Run GitLeaks Scan
+        run:  gitleaks/gitleaks-action@v3
+
+
+  # Docker Job 
+  docker:
+    name:    Build & Push Docker Image
+    runs-on: ubuntu-latest
+    needs:   ci
+
+    steps: 
+
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Login to Docker Hub
+        run:  echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME}}"
+        
       - name: Build Docker Images
-        run: |
-          docker build -t node-crup-app . 
+        run:  docker build -t ${{secrets.DOCKER.DOCKER_USERNAME}}/node-crud-app .
+
+      - name: Run Trivy Scan
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: ${{ secrets.DOCKER_USERNAME }}/node-crud-app
+          format: 'table'
+          exit-code: '1'
+          severity: 'CRITICAL,HIGH'
+
+  # Deployment on EC2 Staging & Production
+  

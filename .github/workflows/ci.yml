@@ -80,5 +80,5 @@ jobs:
           exit-code: '1'
           severity: 'CRITICAL,HIGH'
 
-  # Deployment on EC2 Staging & Production
+  # Deployment on EC2 Staging & Production 
   

@@ -1,7 +1,7 @@
 #Mutistage Backend Docker files
 
 # Stage 1: Install dependencies
-FROM node:22-alpine AS builder
+FROM node:24-alpine AS builder
 
 WORKDIR /backend
 
@@ -12,9 +12,12 @@ RUN npm install
 COPY . .
 
 # Stage 2: Production image
-FROM node:22-alpine
+FROM node:24-alpine
 
 WORKDIR /backend
+
+# Update npm to latest version
+RUN npm install -g npm@latest
 
 # Copy only required files
 COPY --from=builder /backend ./

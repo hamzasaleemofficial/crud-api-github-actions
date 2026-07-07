@@ -91,4 +91,21 @@ jobs:
           severity: 'CRITICAL,HIGH' 
 
   # Deployment on EC2 Staging & Production 
-  
+  deploy-ec2:
+    runs-on: ubuntu:latest
+    needs: docker
+
+    steps:
+
+      - name: Deploy to EC2
+        uses: aapleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key:  ${{ secrets.EC2_KEY}}
+          script: |
+            cd /home/ubuntu/application
+
+            docker compose down
+            docker compose up -d --build
+            

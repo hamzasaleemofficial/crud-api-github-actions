@@ -107,7 +107,7 @@ jobs:
           username: ${{ secrets.EC2_USER }}
           key:  ${{ secrets.EC2_SSH_KEY}}
           script: |
-            cd /home/ubuntu/application
+            cd /home/ubuntu/application/crud-api-github-actions
 
             docker compose down
             docker compose up -d --build

@@ -133,6 +133,6 @@ jobs:
           script: |
             cd /home/ubuntu/application/crud-api-github-actions
 
-            docker compose down
+            docker compose down 
             docker compose up -d --build
             

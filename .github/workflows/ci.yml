@@ -1,46 +1,138 @@
 
+# Workflow ka naam jo GitHub Actions me show hoga
+name: CI/CD Pipeline
 
-name: Node.js CI
-
-# Controls when the workflow will run
+# Workflow kab trigger hoga
 on:
-  # Triggers the workflow on push or pull request events but only for the "main" branch
+
+# Jab code push hoga
   push:
     branches:
       - develop
       - main
+    
+    paths-ignore:
+      - 'README.md'
+
+   # Jab Pull Request create ya update hogi    
   pull_request:
     branches:
       - develop
       - main
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
-jobs:
-  # This workflow contains a single job called "build"
-  build-test:
-    # The type of runner that the job will run on
-    runs-on: ubuntu-latest
+    paths-ignore:
+      - 'README.md'
 
-    # Steps represent a sequence of tasks that will be executed as part of the job
+# Yahan se jobs start hoti hain
+jobs:
+
+  # CI Job
+  ci:
+    name:    Test & Build
+    runs-on: ubuntu-24.04
+
+   
     steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+
       - name: checkout repository
         uses: actions/checkout@v4
 
-      # Runs a single command using the runners shell
+  
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
           cache: npm
       
       - name: Install Dependencies
-        run: npm install
+        run:  npm ci
 
-      # Runs a set of commands using the runners shell
+
       - name: Run Unit Tests
-        run: npm test
-      
-      - name: Build Docker Images
-        run: |
-          docker build -t node-crup-app . 
+        run:  npm test
+
+      - name: Run GitLeaks Scan
+        uses:  gitleaks/gitleaks-action@v3
+
+
+  # Docker Job 
+  docker:
+    name:    Build & Push Docker Image
+    runs-on: ubuntu-24.04
+    needs:   ci
+
+    steps: 
+
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Login int to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+        
+      - name: Build & Push docker Image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          push: true
+          tags: ${{ secrets.DOCKER_USERNAME}}/node-crud-app:latest
+           
+
+      - name: Run Trivy Scan 
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: ${{ secrets.DOCKER_USERNAME }}/node-crud-app:latest
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH' 
+
+  # Deployment on EC2 Staging & Production 
+  deploy-staging:
+    name: Deploy to Staging (develop)
+    runs-on: ubuntu-24.04
+    needs: docker
+
+    if: github.ref == 'refs/heads/develop'
+
+    steps:
+
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key:  ${{ secrets.EC2_SSH_KEY}}
+          script: |
+            cd /home/ubuntu/application/crud-api-github-actions
+
+            docker compose down
+            docker compose up -d --build
+
+  deploy-production:
+    name: Deploy to Production (main)
+    runs-on: ubuntu-24.04
+    needs: docker
+
+    if: github.ref == 'refs/heads/main'
+
+    environment:
+      name: production
+
+    steps:
+
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.EC2_PRODUCTION_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key:  ${{ secrets.EC2_SSH_KEY}}
+          script: |
+            cd /home/ubuntu/application/crud-api-github-actions
+
+            docker compose down
+            docker compose up -d --build
+            

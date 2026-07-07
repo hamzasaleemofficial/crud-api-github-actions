@@ -12,7 +12,9 @@
   "author": "HSK",
   "license": "ISC",
   "dependencies": {
-    "express": "^5.2.1"
+    "express": "^5.2.1",
+    "picomatch": "^4.0.4",
+    "sigstore": "^4.1.1"
   },
   "devDependencies": {
     "jest": "^30.4.2",
